@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema Victorino & Frutonga v6.0</title>
+    <style>
+        :root { 
+            --pizz: #d32f2f; --frut: #0288d1; --caja: #2e7d32; 
+            --plin: #8e44ad; --yape: #742d6a; --dark: #2c3e50; --bg: #f0f2f5;
+            --nota-bg: #fff3cd; --nota-text: #856404; --cancel: #333;
+        }
+        body { font-family: 'Segoe UI', sans-serif; margin: 0; background: var(--bg); color: #333; }
+        nav { background: var(--dark); display: flex; overflow-x: auto; padding: 10px; gap: 8px; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 10px rgba(0,0,0,0.3); }
+        nav button { background: rgba(255,255,255,0.1); color: white; border: none; padding: 12px 18px; border-radius: 8px; cursor: pointer; white-space: nowrap; font-weight: 600; font-size: 14px; }
+        nav button.active { background: white; color: var(--dark); }
+        .container { padding: 15px; max-width: 600px; margin: auto; }
+        .view { display: none; }
+        .view.active { display: block; animation: fadeIn 0.3s; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        
+        .card { background: white; padding: 18px; border-radius: 12px; margin-bottom: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); border: 1px solid #eee; position: relative; }
+        .card h3 { margin: 0 0 10px 0; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; padding-bottom: 8px; }
+        
+        .delete-item { position: absolute; top: 10px; right: 10px; color: #ff4444; font-weight: bold; cursor: pointer; font-size: 20px; padding: 5px; }
+        .btn-clear { background: #666; color: white; border: none; padding: 8px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; margin-bottom: 10px; }
+        
+        .prod-nombre { font-size: 19px; font-weight: bold; margin: 5px 0; display: block; }
+        .nota-box { background: var(--nota-bg); color: var(--nota-text); padding: 10px; border-radius: 8px; font-size: 14px; margin: 10px 0; border-left: 5px solid #ffeeba; font-weight: bold; }
+        .detalle-items { font-size: 14px; color: #444; background: #f8f9fa; padding: 10px; border-radius: 8px; margin: 10px 0; border: 1px solid #eee; line-height: 1.6; }
+        
+        .action-btn { border: none; padding: 14px; border-radius: 8px; font-weight: bold; cursor: pointer; color: white; width: 100%; transition: 0.2s; }
+        .btn-pizz { background: var(--pizz); }
+        .btn-frut { background: var(--frut); }
+        .btn-send { background: var(--caja); font-size: 18px; margin-top: 20px; }
+        .btn-group-caja { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: 10px; }
+        
+        .form-group { background: white; padding: 15px; border-radius: 12px; }
+        select, input { width: 100%; padding: 14px; margin: 8px 0; border: 1.5px solid #ddd; border-radius: 10px; font-size: 16px; box-sizing: border-box; }
+        .total-box { font-size: 26px; font-weight: bold; text-align: right; color: var(--caja); padding: 10px 0; }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+
+<nav>
+    <button onclick="showView('v-mesero', this)" class="active">📝 COMANDA</button>
+    <button onclick="showView('v-pizzas', this)">🍕 VICTORINO</button>
+    <button onclick="showView('v-bebidas', this)">🥤 FRUTONGA</button>
+    <button onclick="showView('v-caja', this)">💰 CAJA</button>
+</nav>
+
+<div class="container">
+    <div id="v-mesero" class="view active">
+        <h2>Nueva Orden</h2>
+        <div class="form-group">
+            <select id="m-tipo" onchange="actualizarRef()">
+                <option value="Mesa">Mesa</option><option value="Delivery">Delivery</option><option value="Para Llevar">Para Llevar</option>
+            </select>
+            <input type="text" id="m-ref" placeholder="N° Mesa">
+            <hr>
+            <select id="m-est" onchange="m_cargarProd()">
+                <option value="">-- Estación --</option>
+                <option value="Victorino">Victorino</option>
+                <option value="Frutonga">Frutonga</option>
+            </select>
+            <div id="m-div-sub" class="hidden"><select id="m-sub" onchange="m_actualizarListaProductos()"></select></div>
+            <select id="m-prod" onchange="m_cargarTam()"><option value="">Seleccione producto...</option></select>
+            <div id="m-div-tam" class="hidden"><select id="m-tam" onchange="m_verPrecio()"></select></div>
+            <div id="m-precio-sug"></div>
+            <input type="text" id="m-nota" placeholder="Nota (ej: sin cebolla, bien tostada)">
+            <button class="action-btn btn-pizz" onclick="m_agregar()">+ AGREGAR ITEM</button>
+        </div>
+
+        <h3 style="margin-top:20px; display:flex; justify-content:space-between; align-items:center;">
+            Carrito 
+            <button class="btn-clear" onclick="m_vaciarTodo()">🧹 Limpiar Todo</button>
+        </h3>
+        <div id="m-lista"></div>
+        <div class="total-box">Total: S/ <span id="m-total">0.00</span></div>
+        <button class="action-btn btn-send" onclick="m_enviar()">ENVIAR TODO A COCINA</button>
+    </div>
+
+    <div id="v-pizzas" class="view"><h2>🍕 Victorino</h2><div id="lista-pizzas"></div></div>
+    <div id="v-bebidas" class="view"><h2>🥤 Frutonga</h2><div id="lista-bebidas"></div></div>
+    <div id="v-caja" class="view"><h2>💰 Caja</h2><div id="lista-caja"></div><hr><h3>Historial</h3><div id="historial-pagos"></div></div>
+</div>
+
+<script>
+    const urlScript = 'https://script.google.com/macros/s/AKfycbwPthEDhHQTJEegvuP1Zup24xkgf5kJvHJIs18m6dA4Q44INy6r1KE8Ow89SL9Bt27B4Q/exec'; // <--- PEGA TU URL AQUÍ
+
+    const carta = {
+        "Victorino": {
+            "Pizzas": {
+                "Americana": { "Personal": 15, "Familiar": 27, "XL": 42 }, "Pepperoni": { "Personal": 15, "Familiar": 27, "XL": 42 },
+                "Vegetariana": { "Personal": 15, "Familiar": 27, "XL": 42 }, "Hawaiana": { "Personal": 15, "Familiar": 27, "XL": 42 },
+                "Hawaiana Tropical": { "Personal": 16, "Familiar": 29, "XL": 45 }, "Suprema": { "Personal": 18, "Familiar": 32, "XL": 47 },
+                "Victorino": { "Personal": 18, "Familiar": 30, "XL": 45 }, "Maíz": { "Personal": 18, "Familiar": 32, "XL": 47 },
+                "Carnívora": { "Personal": 20, "Familiar": 35, "XL": 50 }, "Hawaiana Chicken BBQ": { "Personal": 20, "Familiar": 35, "XL": 50 },
+                "La Brava": { "Personal": 20, "Familiar": 35, "XL": 50 }
+            },
+            "Entradas": { "Pan al ajo Normal": { "Único": 5 }, "Pan al ajo Especial": { "Único": 8 } },
+            "Cócteles": { "Pisco Sour":17, "Mojito":17, "Chilcano":17, "Daikiri":18, "Algarrobina":18, "Piña Colada":18, "El Victorino":20, "Corona Margarita":22 }, // Ajustados para simplificar
+            "Refrescos (1L)": { "Limonada":{N:12, F:15}, "Maracuya":{N:12, F:15}, "Maracumango":{N:12, F:15}, "Fresa Limón":{N:12, F:15}, "Chicha Morada":{N:15, F:15} },
+            "Gaseosas": { "Coca Cola":{ "500ml":4, "1.5L":11 }, "Inca Cola":{ "500ml":4, "1.5L":11 }, "Sprite":{ "500ml":4, "1.5L":11 }, "Agua San Mateo":{ "500ml":4 } },
+            "Cervezas": { "Pilsen":10, "Cuzqueña":12, "Corona":12, "Heineken":12 }
+        },
+        "Frutonga": {
+            "Cremoladas": {
+                "Fresa":{ "Chico (1 sab)":5, "Mediano (2 sab)":7, "Grande (3 sab)":10 }, "Maracuya":{ "Chico (1 sab)":5, "Mediano (2 sab)":7, "Grande (3 sab)":10 },
+                "Mango":{ "Chico (1 sab)":5, "Mediano (2 sab)":7, "Grande (3 sab)":10 }, "Lúcuma":{ "Chico (1 sab)":5, "Mediano (2 sab)":7, "Grande (3 sab)":10 },
+                "Guanábana":{ "Chico (1 sab)":5, "Mediano (2 sab)":7, "Grande (3 sab)":10 }, "Oreo":{ "Chico (1 sab)":5, "Mediano (2 sab)":7, "Grande (3 sab)":10 },
+                "Tamarindo":{ "Chico (1 sab)":5, "Mediano (2 sab)":7, "Grande (3 sab)":10 }, "Capuchino":{ "Chico (1 sab)":5, "Mediano (2 sab)":7, "Grande (3 sab)":10 }
+            },
+            "Frappes": { "Fresa":13, "Maracuya":13, "Mango":13, "Maracumango":15, "Moca":15, "Chocolate":15, "Capuchino":15, "Oreo":15 }
+        }
+    };
+
+    // Ajuste de carga de datos para Cócteles, Cervezas y Frappes que no tienen "tamaño"
+    function normalizarCarta() {
+        ["Victorino", "Frutonga"].forEach(est => {
+            for(let cat in carta[est]) {
+                for(let prod in carta[est][cat]) {
+                    if(typeof carta[est][cat][prod] === 'number') {
+                        carta[est][cat][prod] = { "Único": carta[est][cat][prod] };
+                    }
+                }
+            }
+        });
+    }
+    normalizarCarta();
+
+    let carrito = []; let total = 0;
+
+    function showView(id, btn) {
+        document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+        document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+        document.getElementById(id).classList.add('active'); btn.classList.add('active');
+        if(id !== 'v-mesero') actualizarDatos();
+    }
+
+    function m_cargarProd() {
+        const est = document.getElementById("m-est").value;
+        const subSelect = document.getElementById("m-sub");
+        document.getElementById("m-div-sub").className = est ? "" : "hidden";
+        subSelect.innerHTML = "";
+        if (est === "Victorino") {
+            ["Pizzas", "Entradas", "Cócteles", "Refrescos (1L)", "Gaseosas", "Cervezas"].forEach(c => subSelect.innerHTML += `<option value="${c}">${c}</option>`);
+        } else if (est === "Frutonga") {
+            ["Cremoladas", "Frappes"].forEach(c => subSelect.innerHTML += `<option value="${c}">${c}</option>`);
+        }
+        m_actualizarListaProductos();
+    }
+
+    function m_actualizarListaProductos() {
+        const est = document.getElementById("m-est").value;
+        const sub = document.getElementById("m-sub").value;
+        const prodSelect = document.getElementById("m-prod");
+        prodSelect.innerHTML = '<option value="">Seleccione...</option>';
+        if (carta[est][sub]) Object.keys(carta[est][sub]).forEach(p => prodSelect.innerHTML += `<option value="${p}">${p}</option>`);
+        m_cargarTam();
+    }
+
+    function m_cargarTam() {
+        const est = document.getElementById("m-est").value;
+        const sub = document.getElementById("m-sub").value;
+        const prod = document.getElementById("m-prod").value;
+        const tamSelect = document.getElementById("m-tam");
+        const tamDiv = document.getElementById("m-div-tam");
+        if(!prod) { tamDiv.className = "hidden"; return; }
+        const opciones = carta[est][sub][prod];
+        tamSelect.innerHTML = "";
+        const keys = Object.keys(opciones);
+        tamDiv.className = (keys.length === 1 && keys[0] === "Único") ? "hidden" : "";
+        keys.forEach(k => tamSelect.innerHTML += `<option value="${k}">${k}</option>`);
+        m_verPrecio();
+    }
+
+    function m_verPrecio() {
+        const est = document.getElementById("m-est").value;
+        const sub = document.getElementById("m-sub").value;
+        const prod = document.getElementById("m-prod").value;
+        const tam = document.getElementById("m-tam").value;
+        const area = document.getElementById("m-precio-sug");
+        if(prod && tam) {
+            const precio = carta[est][sub][prod][tam];
+            let html = `<b>S/ ${precio.toFixed(2)}</b>`;
+            if (precio == 7) html += `<input type="text" id="sab2" placeholder="2do Sabor">`;
+            if (precio == 10) html += `<input type="text" id="sab2" placeholder="2do Sabor"><input type="text" id="sab3" placeholder="3er Sabor">`;
+            if (sub === "Cócteles") html += `<div style="color:var(--plin); font-size:12px;">2x25 Lun-Vie</div>`;
+            area.innerHTML = html;
+        }
+    }
+
+    function m_agregar() {
+        const est = document.getElementById("m-est").value;
+        const sub = document.getElementById("m-sub").value;
+        const prod = document.getElementById("m-prod").value;
+        const tam = document.getElementById("m-tam").value;
+        const nota = document.getElementById("m-nota").value;
+        if(!prod || !tam) return;
+        let nombre = (tam === "Único") ? prod : `${prod} (${tam})`;
+        const s2 = document.getElementById("sab2")?.value;
+        const s3 = document.getElementById("sab3")?.value;
+        if(s2) nombre += ` + ${s2}`; if(s3) nombre += ` + ${s3}`;
+        const p = carta[est][sub][prod][tam];
+        const id = Date.now();
+        carrito.push({id, est, detalle: nombre, precio: p, nota: nota});
+        total += p;
+        m_renderCarrito();
+        document.getElementById("m-nota").value = "";
+    }
+
+    function m_renderCarrito() {
+        const lista = document.getElementById("m-lista");
+        lista.innerHTML = "";
+        carrito.forEach(item => {
+            lista.innerHTML += `
+                <div class="card" style="border-left:5px solid ${item.est==='Victorino'?'#d32f2f':'#0288d1'}">
+                    <span class="delete-item" onclick="m_borrarItem(${item.id})">✖</span>
+                    <b>${item.detalle}</b>
+                    ${item.nota ? `<div class="nota-box">${item.nota}</div>` : ''}
+                    <div style="text-align:right; font-weight:bold;">S/ ${item.precio.toFixed(2)}</div>
+                </div>`;
+        });
+        document.getElementById("m-total").innerText = total.toFixed(2);
+    }
+
+    function m_borrarItem(id) {
+        const idx = carrito.findIndex(i => i.id === id);
+        if(idx > -1) { total -= carrito[idx].precio; carrito.splice(idx, 1); m_renderCarrito(); }
+    }
+
+    function m_vaciarTodo() {
+        if(confirm("¿Vaciar todo el carrito?")) { carrito = []; total = 0; m_renderCarrito(); }
+    }
+
+    async function m_enviar() {
+        if(carrito.length === 0) return;
+        const datos = { accion: "enviar", tipo: document.getElementById("m-tipo").value, referencia: document.getElementById("m-ref").value, productos: carrito, pago: "POR COBRAR" };
+        await fetch(urlScript, { method: 'POST', mode: 'no-cors', body: JSON.stringify(datos) });
+        alert("✅ Enviado"); location.reload();
+    }
+
+    async function actualizarDatos() {
+        const res = await fetch(urlScript);
+        const pedidos = await res.json();
+        const cp = document.getElementById("lista-pizzas"); cp.innerHTML = "";
+        const cb = document.getElementById("lista-bebidas"); cb.innerHTML = "";
+        const cc = document.getElementById("lista-caja"); cc.innerHTML = "";
+        const hp = document.getElementById("historial-pagos"); hp.innerHTML = "";
+        const mesas = {};
+        pedidos.forEach(p => {
+            if(p.estado === "PENDIENTE") {
+                const html = `<div class="card"><h3>${p.referencia}</h3><span class="prod-nombre">${p.producto}</span>${p.nota ? `<div class="nota-box">${p.nota}</div>` : ''}<button class="action-btn ${p.estacion === 'Victorino' ? 'btn-pizz' : 'btn-frut'}" onclick="cambiarEstado('${p.referencia}','${p.producto}','marcarListo')">LISTO ✅</button></div>`;
+                p.estacion === "Victorino" ? cp.innerHTML += html : cb.innerHTML += html;
+            }
+            if(p.pago === "POR COBRAR") {
+                if(!mesas[p.referencia]) mesas[p.referencia] = { total: 0, items: [] };
+                mesas[p.referencia].total += p.precio;
+                mesas[p.referencia].items.push(`${p.estado === "LISTO" ? "✅" : "⏳"} ${p.producto}`);
+            } else if (p.pago !== "CANCELADO") {
+                hp.innerHTML += `<div class="card" style="font-size:12px; padding:8px;"><b>[${p.pago}]</b> ${p.referencia}: ${p.producto}</div>`;
+            }
+        });
+        for(let m in mesas) {
+            cc.innerHTML += `<div class="card"><h3>${m} <span>S/ ${mesas[m].total.toFixed(2)}</span></h3><div class="detalle-items">${mesas[m].items.join("<br>")}</div><div class="btn-group-caja"><button class="action-btn" style="background:var(--yape)" onclick="cobrar('${m}','Yape')">YAPE</button><button class="action-btn" style="background:var(--plin)" onclick="cobrar('${m}','Plin')">PLIN</button><button class="action-btn" style="background:#555" onclick="cobrar('${m}','EFEC')">EFEC</button></div><button class="action-btn" style="background:#333; margin-top:8px;" onclick="cancelarPedido('${m}')">❌ CANCELAR</button></div>`;
+        }
+    }
+
+    async function cambiarEstado(ref, prod, acc) { await fetch(urlScript,{method:'POST',mode:'no-cors',body:JSON.stringify({accion:acc,referencia:ref,producto:prod})}); actualizarDatos(); }
+    async function cobrar(ref, met) { if(confirm(`Cobrar con ${met}?`)) { await fetch(urlScript,{method:'POST',mode:'no-cors',body:JSON.stringify({accion:"cobrar",referencia:ref,nuevoPago:met})}); actualizarDatos(); } }
+    async function cancelarPedido(ref) { if(confirm(`¿Cancelar pedido?`)) { await fetch(urlScript,{method:'POST',mode:'no-cors',body:JSON.stringify({accion:"cancelar",referencia:ref})}); actualizarDatos(); } }
+    function actualizarRef() { const t = document.getElementById("m-tipo").value; document.getElementById("m-ref").placeholder = (t === "Mesa") ? "N° Mesa" : "Nombre/Dirección"; }
+    
+    setInterval(actualizarDatos, 30000);
+</script>
+</body>
+</html>
